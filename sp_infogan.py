@@ -9,7 +9,8 @@ from keras.optimizers import Adam
 from keras.utils import to_categorical
 import keras.backend as K
 import utils
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy as np
