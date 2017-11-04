@@ -232,4 +232,4 @@ class INFOGAN():
 if __name__ == '__main__':
     utils.setup_logging()
     infogan = INFOGAN()
-    infogan.train(epochs=6000, batch_size=32, save_interval=50)
+    infogan.train(epochs=30000, batch_size=32, save_interval=1000)
