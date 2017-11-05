@@ -26,7 +26,7 @@ class INFOGAN():
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = 74
 
-        optimizer = Adam(0.0002, 0.5)
+        optimizer = Adam(0.0001, 0.5)
         losses = ['binary_crossentropy', 'categorical_crossentropy', self.gaussian_loss]
 
         # Build and compile the discriminator
@@ -147,13 +147,14 @@ class INFOGAN():
 
         return Model(img, [validity, label, cont])
 
-    def sample_generator_input(self, batch_size):
+    def sample_generator_input(self, batch_size,y_train_batch):
         # Generator inputs
         sampled_noise = np.random.normal(0, 1, (batch_size, 62))
-        sampled_labels = np.random.randint(0, 10, batch_size).reshape(-1, 1)
-        sampled_labels = to_categorical(sampled_labels, num_classes=self.num_classes)
+        # sampled_labels = np.random.randint(0, 10, batch_size).reshape(-1, 1)
+        # sampled_labels = to_categorical(sampled_labels, num_classes=self.num_classes)
+        true_labels = to_categorical(y_train_batch, num_classes=self.num_classes)
         sampled_cont = np.random.uniform(-1, 1, size=(batch_size, 2))
-        return sampled_noise, sampled_labels, sampled_cont
+        return sampled_noise, true_labels, sampled_cont
 
     def train(self, epochs, batch_size=128, save_interval=50):
 
@@ -174,8 +175,9 @@ class INFOGAN():
             #  Train Discriminator
             # ---------------------
             for b in range(nb):
+                idx = np.random.randint(0, X_train.shape[0], half_batch)
                 # Train discriminator on generator output
-                sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(half_batch)
+                sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(half_batch,y_train[idx])
                 gen_input = np.concatenate((sampled_noise, sampled_labels, sampled_cont), axis=1)
                 # Generate a half batch of new images
                 gen_imgs = self.generator.predict(gen_input)
@@ -184,7 +186,6 @@ class INFOGAN():
 
                 # Train discriminator on real data
                 # Select a random half batch of images
-                idx = np.random.randint(0, X_train.shape[0], half_batch)
                 imgs = X_train[idx]
                 labels = to_categorical(y_train[idx], num_classes=self.num_classes)
                 valid = np.ones((half_batch, 1))
@@ -199,7 +200,7 @@ class INFOGAN():
 
                 valid = np.ones((batch_size, 1))
 
-                sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(batch_size)
+                sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(batch_size,y_train[idx])
                 gen_input = np.concatenate((sampled_noise, sampled_labels, sampled_cont), axis=1)
 
                 # Train the generator
@@ -245,4 +246,4 @@ class INFOGAN():
 if __name__ == '__main__':
     utils.setup_logging()
     infogan = INFOGAN()
-    infogan.train(epochs=20000, batch_size=64, save_interval=1000)
+    infogan.train(epochs=150, batch_size=64, save_interval=10)
