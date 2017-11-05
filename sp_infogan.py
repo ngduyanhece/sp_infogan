@@ -7,7 +7,6 @@ from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.utils import to_categorical
-from keras.models import load_model
 import keras.backend as K
 import utils
 import matplotlib
@@ -15,7 +14,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import numpy as np
-
+from sklearn.utils import shuffle
 
 class INFOGAN():
     def __init__(self):
@@ -160,6 +159,8 @@ class INFOGAN():
 
         # Load the dataset
         (X_train, y_train), (X_test, y_test) = mnist.load_data()
+        X_train,y_train = shuffle(X_train,y_train,random_state=0)
+        X_test,y_test = shuffle(X_test,y_test,random_state=0)
 
         # Rescale -1 to 1
         X_train = (X_train.astype(np.float32) - 127.5) / 127.5

@@ -40,5 +40,8 @@ def setup_logging():
     create_dir([fig_dir, model_dir])
 
 def accuracy(labels,p_y):
+    labels = labels.reshape(-1,)
     p_labels = np.argmax(p_y,axis=1)
+    print(p_labels)
+    print(labels)
     return 100*np.mean(p_labels==labels)
