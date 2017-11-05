@@ -25,7 +25,8 @@ class INFOGAN():
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = 140
 
-        optimizer = Adam(0.0001, 0.5)
+        d_optimizer = Adam(2e-4)
+        g_optimizer = Adam(1e-3)
         losses = ['binary_crossentropy', 'categorical_crossentropy', self.gaussian_loss]
 
         # Build and compile the discriminator
@@ -35,13 +36,13 @@ class INFOGAN():
         #                            metrics=['accuracy'])
         # check if the pre-trained weights exist to lead
         self.discriminator = self.build_discriminator()
-        self.discriminator.compile(loss=losses,optimizer=optimizer,metrics=['accuracy'])
+        self.discriminator.compile(loss=losses,optimizer=d_optimizer,metrics=['accuracy'])
         if os.path.exists("./saved_model/discriminator.h5"):
             print("loading weights for discriminator")
             self.discriminator.load_weights('./saved_model/discriminator.h5')
         # Build and compile the generator
         self.generator = self.build_generator()
-        self.generator.compile(loss=['binary_crossentropy'],optimizer=optimizer)
+        self.generator.compile(loss=['binary_crossentropy'],optimizer=g_optimizer)
         if os.path.exists("./saved_model/generator.h5"):
             print("loading weights for generator")
             self.generator.load_weights('./saved_model/generator.h5')
@@ -61,7 +62,7 @@ class INFOGAN():
         # noise as input => generates images => determines validity
         self.combined = Model(gen_input, [valid, target_label, target_cont])
         self.combined.compile(loss=losses,
-                              optimizer=optimizer)
+                              optimizer=g_optimizer)
         if os.path.exists("./saved_model/adversarial.h5"):
             print("loading weights for the adversarial")
             self.combined.load_weights('./saved_model/adversarial.h5')
@@ -260,4 +261,4 @@ class INFOGAN():
 if __name__ == '__main__':
     utils.setup_logging()
     infogan = INFOGAN()
-    infogan.train(epochs=200, batch_size=64, save_interval=10)
+    infogan.train(epochs=300, batch_size=64, save_interval=10)
