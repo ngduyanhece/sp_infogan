@@ -7,12 +7,13 @@ from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.utils import to_categorical
+from keras.models import load_model
 import keras.backend as K
 import utils
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+import os
 import numpy as np
 
 
@@ -29,16 +30,22 @@ class INFOGAN():
         losses = ['binary_crossentropy', 'categorical_crossentropy', self.gaussian_loss]
 
         # Build and compile the discriminator
+        # self.discriminator = self.build_discriminator()
+        # self.discriminator.compile(loss=losses,
+        #                            optimizer=optimizer,
+        #                            metrics=['accuracy'])
+        # check if the pre-trained weights exist to lead
         self.discriminator = self.build_discriminator()
-        self.discriminator.compile(loss=losses,
-                                   optimizer=optimizer,
-                                   metrics=['accuracy'])
-
+        self.discriminator.compile(loss=losses,optimizer=optimizer,metrics=['accuracy'])
+        if os.path.exists("./saved_model/discriminator.h5"):
+            print("loading weights for discriminator")
+            self.discriminator.load_weights('./saved_model/discriminator.h5')
         # Build and compile the generator
         self.generator = self.build_generator()
-        self.generator.compile(loss=['binary_crossentropy'],
-                               optimizer=optimizer)
-
+        self.generator.compile(loss=['binary_crossentropy'],optimizer=optimizer)
+        if os.path.exists("./saved_model/generator.h5"):
+            print("loading weights for generator")
+            self.generator.load_weights('./saved_model/generator.h5')
         # The generator takes noise and the target label as input
         # and generates the corresponding digit of that label
         gen_input = Input(shape=(self.latent_dim,))
@@ -56,6 +63,9 @@ class INFOGAN():
         self.combined = Model(gen_input, [valid, target_label, target_cont])
         self.combined.compile(loss=losses,
                               optimizer=optimizer)
+        if os.path.exists("./saved_model/adversarial.h5"):
+            print("loading weights for the adversarial")
+            self.combined.load_weights('./saved_model/adversarial.h5')
 
     # Reference: https://github.com/tdeboissiere/DeepLearningImplementations/blob/master/InfoGAN/
     def gaussian_loss(self, y_true, y_pred):
@@ -156,47 +166,49 @@ class INFOGAN():
         y_train = y_train.reshape(-1, 1)
 
         half_batch = int(batch_size / 2)
+        nb = int(X_train.shape[0]/batch_size)
 
         for epoch in range(epochs):
 
             # ---------------------
             #  Train Discriminator
             # ---------------------
+            for b in range(nb):
+                # Train discriminator on generator output
+                sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(half_batch)
+                gen_input = np.concatenate((sampled_noise, sampled_labels, sampled_cont), axis=1)
+                # Generate a half batch of new images
+                gen_imgs = self.generator.predict(gen_input)
+                fake = np.zeros((half_batch, 1))
+                d_loss_fake = self.discriminator.train_on_batch(gen_imgs, [fake, sampled_labels, sampled_cont])
 
-            # Train discriminator on generator output
-            sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(half_batch)
-            gen_input = np.concatenate((sampled_noise, sampled_labels, sampled_cont), axis=1)
-            # Generate a half batch of new images
-            gen_imgs = self.generator.predict(gen_input)
-            fake = np.zeros((half_batch, 1))
-            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, [fake, sampled_labels, sampled_cont])
+                # Train discriminator on real data
+                # Select a random half batch of images
+                idx = np.random.randint(0, X_train.shape[0], half_batch)
+                imgs = X_train[idx]
+                labels = to_categorical(y_train[idx], num_classes=self.num_classes)
+                valid = np.ones((half_batch, 1))
+                d_loss_real = self.discriminator.train_on_batch(imgs, [valid, labels, sampled_cont])
 
-            # Train discriminator on real data
-            # Select a random half batch of images
-            idx = np.random.randint(0, X_train.shape[0], half_batch)
-            imgs = X_train[idx]
-            labels = to_categorical(y_train[idx], num_classes=self.num_classes)
-            valid = np.ones((half_batch, 1))
-            d_loss_real = self.discriminator.train_on_batch(imgs, [valid, labels, sampled_cont])
+                # Avg. loss
+                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
-            # Avg. loss
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+                # ---------------------
+                #  Train Generator
+                # ---------------------
 
-            # ---------------------
-            #  Train Generator
-            # ---------------------
+                valid = np.ones((batch_size, 1))
 
-            valid = np.ones((batch_size, 1))
+                sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(batch_size)
+                gen_input = np.concatenate((sampled_noise, sampled_labels, sampled_cont), axis=1)
 
-            sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(batch_size)
-            gen_input = np.concatenate((sampled_noise, sampled_labels, sampled_cont), axis=1)
+                # Train the generator
+                g_loss = self.combined.train_on_batch(gen_input, [valid, sampled_labels, sampled_cont])
 
-            # Train the generator
-            g_loss = self.combined.train_on_batch(gen_input, [valid, sampled_labels, sampled_cont])
-
-            # Plot the progress
-            print("%d [D loss: %.2f, acc.: %.2f%%, label_acc: %.2f%%] [G loss: %.2f]" % (
-            epoch, d_loss[0], 100 * d_loss[4], 100 * d_loss[5], g_loss[0]))
+                # Plot the progress
+                if (b % (nb/2) == 0):
+                    print("Epoch: %d [D loss: %.2f, acc.: %.2f%%, label_acc: %.2f%%] [G loss: %.2f]" % (
+                    epoch, d_loss[0], 100 * d_loss[4], 100 * d_loss[5], g_loss[0]))
 
             # If at save interval => save generated image samples
             if epoch % save_interval == 0:
@@ -221,9 +233,9 @@ class INFOGAN():
     def save_model(self):
 
         def save(model, model_name):
-            model_path = "./saved_model/%s.h5" % model_name
-            model.save(model_path)
-
+            weights_path = "./saved_model/%s.h5" % model_name
+            model.save_weights(weights_path)
+        print("Saving weights.......")
         save(self.generator, "generator")
         save(self.discriminator, "discriminator")
         save(self.combined, "adversarial")
@@ -232,4 +244,4 @@ class INFOGAN():
 if __name__ == '__main__':
     utils.setup_logging()
     infogan = INFOGAN()
-    infogan.train(epochs=30000, batch_size=32, save_interval=1000)
+    infogan.train(epochs=100000, batch_size=64, save_interval=1000)
