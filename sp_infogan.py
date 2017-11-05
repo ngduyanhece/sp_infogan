@@ -213,7 +213,8 @@ class INFOGAN():
             # If at save interval => save generated image samples
             if epoch % save_interval == 0:
                 self.save_imgs(epoch)
-        self.save_model()
+            if epoch % 1000 == 0:
+                self.save_model()
 
     def save_imgs(self, epoch):
         r, c = 10, 10
@@ -244,4 +245,4 @@ class INFOGAN():
 if __name__ == '__main__':
     utils.setup_logging()
     infogan = INFOGAN()
-    infogan.train(epochs=100000, batch_size=64, save_interval=1000)
+    infogan.train(epochs=20000, batch_size=64, save_interval=1000)
