@@ -168,6 +168,8 @@ class INFOGAN():
         X_test = np.expand_dims(X_test, axis=3)
         y_train = y_train.reshape(-1, 1)
         y_test = y_test.reshape(-1, 1)
+        X_valid = X_test[-1000:]
+        y_valid = y_test[-1000:]
 
         half_batch = int(batch_size / 2)
         nb = int(X_train.shape[0]/batch_size)
@@ -210,11 +212,11 @@ class INFOGAN():
 
                 # Plot the progress
                 if (b % (nb/2) == 0):
-                    _,p_Y_test,_ = self.discriminator.predict_on_batch(X_test)
-                    acc = utils.accuracy(y_test,p_Y_test)
+                    _,p_Y_test,_ = self.discriminator.predict_on_batch(X_valid)
+                    acc = utils.accuracy(y_valid,p_Y_test)
                     print("Epoch: %d [D loss: %.2f, acc.: %.2f%%, label_acc: %.2f%%] [G loss: %.2f]" % (
                     epoch, d_loss[0], 100 * d_loss[4], 100 * d_loss[5], g_loss[0]))
-                    print("Testing Accuracy: {}".format(acc))
+                    print("Testing Accuracy: {} %".format(acc))
 
             # If at save interval => save generated image samples
             if epoch % save_interval == 0:

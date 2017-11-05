@@ -41,4 +41,4 @@ def setup_logging():
 
 def accuracy(labels,p_y):
     p_labels = np.argmax(p_y,axis=1)
-    return np.mean(p_labels==labels)
+    return 100*np.mean(p_labels==labels)
