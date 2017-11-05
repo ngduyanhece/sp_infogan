@@ -1,5 +1,5 @@
 from __future__ import print_function
-from keras.datasets import mnist
+from keras.datasets import cifar10
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, concatenate
 from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D, Lambda
 from keras.layers.advanced_activations import LeakyReLU
@@ -18,9 +18,9 @@ from sklearn.utils import shuffle
 
 class INFOGAN():
     def __init__(self):
-        self.img_rows = 28
-        self.img_cols = 28
-        self.channels = 1
+        self.img_rows = 32
+        self.img_cols = 32
+        self.channels = 3
         self.num_classes = 10
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = 74
@@ -84,9 +84,9 @@ class INFOGAN():
 
         model.add(Dense(1024, activation='relu', input_dim=self.latent_dim))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(128 * 7 * 7, activation="relu"))
+        model.add(Dense(128 * 8 * 8, activation="relu"))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Reshape((7, 7, 128)))
+        model.add(Reshape((8, 8, 128)))
         model.add(UpSampling2D())
         model.add(Conv2D(64, kernel_size=4, padding="same"))
         model.add(Activation("relu"))
@@ -158,15 +158,13 @@ class INFOGAN():
     def train(self, epochs, batch_size=128, save_interval=50):
 
         # Load the dataset
-        (X_train, y_train), (X_test, y_test) = mnist.load_data()
+        (X_train, y_train), (X_test, y_test) = cifar10.load_data()
         X_train,y_train = shuffle(X_train,y_train,random_state=0)
         X_test,y_test = shuffle(X_test,y_test,random_state=0)
 
         # Rescale -1 to 1
-        X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-        X_test = (X_test.astype(np.float32) - 127.5) / 127.5
-        X_train = np.expand_dims(X_train, axis=3)
-        X_test = np.expand_dims(X_test, axis=3)
+        X_train = X_train.astype(np.float32)/255
+        X_test = X_test.astype(np.float32)/255
         y_train = y_train.reshape(-1, 1)
         y_test = y_test.reshape(-1, 1)
         X_valid = X_test[-1000:]
@@ -235,7 +233,7 @@ class INFOGAN():
             gen_imgs = self.generator.predict(gen_input)
             gen_imgs = 0.5 * gen_imgs + 0.5
             for j in range(c):
-                axs[i, j].imshow(gen_imgs[j, :, :, 0], cmap='gray')
+                axs[i, j].imshow(gen_imgs[j, :, :, :])
                 axs[i, j].axis('off')
         fig.savefig("./images/mnist_%d.png" % epoch)
         plt.close()
