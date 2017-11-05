@@ -1,5 +1,5 @@
 import os
-
+import numpy as np
 
 def remove_files(files):
     """
@@ -37,4 +37,8 @@ def setup_logging():
     model_dir = "./saved_model"
     fig_dir = "./images"
     # Create if it does not exist
-    create_dir([fig_dir,model_dir])
+    create_dir([fig_dir, model_dir])
+
+def accuracy(labels,p_y):
+    p_labels = np.argmax(p_y,axis=1)
+    return np.mean(p_labels==labels)

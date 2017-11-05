@@ -159,12 +159,15 @@ class INFOGAN():
     def train(self, epochs, batch_size=128, save_interval=50):
 
         # Load the dataset
-        (X_train, y_train), (_, _) = mnist.load_data()
+        (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
         # Rescale -1 to 1
         X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+        X_test = (X_train.astype(np.float32) - 127.5) / 127.5
         X_train = np.expand_dims(X_train, axis=3)
+        X_test = np.expand_dims(X_test, axis=3)
         y_train = y_train.reshape(-1, 1)
+        y_test = y_test.reshape(-1, 1)
 
         half_batch = int(batch_size / 2)
         nb = int(X_train.shape[0]/batch_size)
@@ -198,9 +201,8 @@ class INFOGAN():
                 #  Train Generator
                 # ---------------------
 
-                valid = np.ones((batch_size, 1))
-
-                sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(batch_size,y_train[idx])
+                valid = np.ones((half_batch, 1))
+                sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(half_batch,y_train[idx])
                 gen_input = np.concatenate((sampled_noise, sampled_labels, sampled_cont), axis=1)
 
                 # Train the generator
@@ -208,8 +210,11 @@ class INFOGAN():
 
                 # Plot the progress
                 if (b % (nb/2) == 0):
+                    _,p_Y_test,_ = self.discriminator.predict_on_batch(X_test)
+                    acc = utils.accuracy(y_test,p_Y_test)
                     print("Epoch: %d [D loss: %.2f, acc.: %.2f%%, label_acc: %.2f%%] [G loss: %.2f]" % (
                     epoch, d_loss[0], 100 * d_loss[4], 100 * d_loss[5], g_loss[0]))
+                    print("Testing Accuracy: {}".format(acc))
 
             # If at save interval => save generated image samples
             if epoch % save_interval == 0:
@@ -246,4 +251,4 @@ class INFOGAN():
 if __name__ == '__main__':
     utils.setup_logging()
     infogan = INFOGAN()
-    infogan.train(epochs=150, batch_size=64, save_interval=10)
+    infogan.train(epochs=200, batch_size=64, save_interval=10)
