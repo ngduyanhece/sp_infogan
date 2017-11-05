@@ -220,16 +220,16 @@ class INFOGAN():
 
             # If at save interval => save generated image samples
             if epoch % save_interval == 0:
-                self.save_imgs(epoch)
+                self.save_imgs(epoch,X_train,y_train)
             if epoch % 1000 == 0:
                 self.save_model()
 
-    def save_imgs(self, epoch):
+    def save_imgs(self, epoch,X,y):
         r, c = 10, 10
-
+        idx = np.random.randint(0, X.shape[0], c)
         fig, axs = plt.subplots(r, c)
         for i in range(r):
-            sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(c)
+            sampled_noise, sampled_labels, sampled_cont = self.sample_generator_input(c,y[idx])
             gen_input = np.concatenate((sampled_noise, sampled_labels, sampled_cont), axis=1)
             gen_imgs = self.generator.predict(gen_input)
             gen_imgs = 0.5 * gen_imgs + 0.5
