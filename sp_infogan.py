@@ -164,7 +164,7 @@ class INFOGAN():
 
         # Rescale -1 to 1
         X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-        X_test = (X_train.astype(np.float32) - 127.5) / 127.5
+        X_test = (X_test.astype(np.float32) - 127.5) / 127.5
         X_train = np.expand_dims(X_train, axis=3)
         X_test = np.expand_dims(X_test, axis=3)
         y_train = y_train.reshape(-1, 1)
@@ -213,8 +213,8 @@ class INFOGAN():
 
                 # Plot the progress
                 if (b % (nb/2) == 0):
-                    _,p_Y_test,_ = self.discriminator.predict_on_batch(X_valid)
-                    acc = utils.accuracy(y_valid,p_Y_test)
+                    _,p_Y_valid,_ = self.discriminator.predict_on_batch(X_valid)
+                    acc = utils.accuracy(y_valid,p_Y_valid)
                     print("Epoch: %d [D loss: %.2f, acc.: %.2f%%, label_acc: %.2f%%] [G loss: %.2f]" % (
                     epoch, d_loss[0], 100 * d_loss[4], 100 * d_loss[5], g_loss[0]))
                     print("Testing Accuracy: {} %".format(acc))
