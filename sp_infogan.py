@@ -23,7 +23,7 @@ class INFOGAN():
         self.channels = 3
         self.num_classes = 10
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.latent_dim = 74
+        self.latent_dim = 140
 
         optimizer = Adam(0.0001, 0.5)
         losses = ['binary_crossentropy', 'categorical_crossentropy', self.gaussian_loss]
@@ -84,9 +84,13 @@ class INFOGAN():
 
         model.add(Dense(1024, activation='relu', input_dim=self.latent_dim))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(128 * 8 * 8, activation="relu"))
+        model.add(Dense(256 * 4 * 4, activation="relu"))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Reshape((8, 8, 128)))
+        model.add(Reshape((4, 4, 256)))
+        model.add(UpSampling2D())
+        model.add(Conv2D(128, kernel_size=4, padding="same"))
+        model.add(Activation("relu"))
+        model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(64, kernel_size=4, padding="same"))
         model.add(Activation("relu"))
@@ -110,6 +114,10 @@ class INFOGAN():
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
         model.add(Conv2D(128, kernel_size=4, strides=2, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Dropout(0.25))
+        model.add(Conv2D(256, kernel_size=4, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Dropout(0.25))
@@ -148,7 +156,7 @@ class INFOGAN():
 
     def sample_generator_input(self, batch_size,y_train_batch):
         # Generator inputs
-        sampled_noise = np.random.normal(0, 1, (batch_size, 62))
+        sampled_noise = np.random.normal(0, 1, (batch_size, 128))
         # sampled_labels = np.random.randint(0, 10, batch_size).reshape(-1, 1)
         # sampled_labels = to_categorical(sampled_labels, num_classes=self.num_classes)
         true_labels = to_categorical(y_train_batch, num_classes=self.num_classes)
