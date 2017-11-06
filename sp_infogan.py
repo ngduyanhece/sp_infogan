@@ -172,8 +172,8 @@ class INFOGAN():
         X_test,y_test = shuffle(X_test,y_test,random_state=0)
 
         # Rescale -1 to 1
-        X_train = X_train.astype(np.float32)/255
-        X_test = X_test.astype(np.float32)/255
+        X_train = X_train.astype(np.float32)
+        X_test = X_test.astype(np.float32)
         y_train = y_train.reshape(-1, 1)
         y_test = y_test.reshape(-1, 1)
         X_valid = X_test[-1000:]
